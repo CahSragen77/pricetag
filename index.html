@@ -1,0 +1,966 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Price Tag Amanda Mart v4.1</title>
+    <!-- Library -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js">
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js">
+    </script>
+    <!-- Barcode Scanner Library -->
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js">
+    </script>
+    <style>
+        :root {
+            --primary: #1d6fe3;
+            --danger: #e53935;
+            --bg: #f4f6f9;
+            --card: #ffffff;
+            --text: #1a1d23;
+            --border: #ccd5e0;
+            --shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            --radius: 12px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.5;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+        }
+
+        /* ========== MOBILE FIRST LAYOUT ========== */
+        .app-container {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .control-panel {
+            background: var(--card);
+            border-bottom: 2px solid var(--border);
+            padding: 12px;
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            box-shadow: var(--shadow);
+        }
+
+        .preview-panel {
+            flex: 1;
+            padding: 12px;
+            overflow-y: auto;
+            background: #f0f2f5;
+        }
+
+        /* ========== TOAST NOTIFICATION ========== */
+        .toast-container {
+            position: fixed;
+            top: 16px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            width: 90%;
+            max-width: 500px;
+            pointer-events: none;
+        }
+        .toast {
+            padding: 12px 16px;
+            border-radius: 10px;
+            color: #fff;
+            font-weight: 600;
+            font-size: 14px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+            animation: slideDown 0.3s ease;
+            pointer-events: auto;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .toast.error {
+            background: #d32f2f;
+            border-left: 5px solid #b71c1c;
+        }
+        .toast.success {
+            background: #2e7d32;
+            border-left: 5px solid #1b5e20;
+        }
+        .toast.warning {
+            background: #f57c00;
+            border-left: 5px solid #e65100;
+        }
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* ========== COLLAPSIBLE SECTIONS ========== */
+        .section {
+            margin-bottom: 12px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            overflow: hidden;
+            background: #fff;
+        }
+        .section-header {
+            background: #f8fafd;
+            padding: 10px 14px;
+            font-weight: 700;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #444;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            user-select: none;
+        }
+        .section-body {
+            padding: 12px;
+            display: block;
+        }
+        .section-body.collapsed {
+            display: none;
+        }
+
+        /* ========== FORM ELEMENTS ========== */
+        input[type="text"],
+        input[type="date"],
+        input[type="file"],
+        select {
+            width: 100%;
+            padding: 12px;
+            border: 1.5px solid var(--border);
+            border-radius: 10px;
+            font-size: 15px;
+            background: #fff;
+            transition: 0.2s;
+            margin: 4px 0;
+        }
+        input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(29, 111, 227, 0.15);
+            outline: none;
+        }
+        button {
+            cursor: pointer;
+            border: none;
+            border-radius: 10px;
+            font-weight: 700;
+            font-size: 14px;
+            padding: 11px 16px;
+            transition: 0.2s;
+            touch-action: manipulation;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+        .btn-primary {
+            background: var(--primary);
+            color: #fff;
+            box-shadow: 0 2px 8px rgba(29, 111, 227, 0.3);
+        }
+        .btn-primary:active {
+            transform: scale(0.97);
+            background: #1557b0;
+        }
+        .btn-outline {
+            background: #fff;
+            border: 1.5px solid var(--border);
+            color: #333;
+        }
+        .btn-danger {
+            background: #fff;
+            border: 1.5px solid #e53935;
+            color: #e53935;
+        }
+        .btn-sm {
+            padding: 6px 10px;
+            font-size: 12px;
+            border-radius: 8px;
+        }
+        .btn-block {
+            width: 100%;
+            margin: 4px 0;
+        }
+
+        /* Scanner */
+        .scanner-btn {
+            background: #ff9800;
+            color: #fff;
+            font-size: 16px;
+            padding: 14px;
+            border-radius: 50px;
+            box-shadow: 0 4px 12px rgba(255, 152, 0, 0.4);
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%,
+            100% {
+                box-shadow: 0 4px 12px rgba(255, 152, 0, 0.4);
+            }
+            50% {
+                box-shadow: 0 4px 24px rgba(255, 152, 0, 0.7);
+            }
+        }
+        #reader {
+            width: 100%;
+            border-radius: 12px;
+            overflow: hidden;
+            margin: 8px 0;
+            border: 2px solid var(--border);
+        }
+        #scanMsg {
+            font-size: 13px;
+            min-height: 20px;
+            margin-top: 4px;
+            font-weight: 600;
+        }
+
+        /* Info text */
+        .info-text {
+            font-size: 11px;
+            color: #888;
+            margin-top: 2px;
+        }
+
+        /* ========== TAG GRID ========== */
+        .tag-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+        }
+        .price-tag {
+            border: 1px solid #333;
+            border-radius: 6px;
+            background: #fff;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+        }
+        .tag-small {
+            width: 4cm;
+            height: 3.5cm;
+        }
+        .tag-large {
+            width: 6.3cm;
+            height: 3.5cm;
+        }
+        .tag-name {
+            height: 32%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            font-weight: 600;
+            font-size: 8.5pt;
+            padding: 1.5mm 2mm;
+            line-height: 1.2;
+            overflow: hidden;
+            text-transform: uppercase;
+        }
+        .tag-large .tag-name {
+            font-size: 10pt;
+        }
+        .tag-price {
+            height: 22%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 14pt;
+            letter-spacing: -0.2px;
+        }
+        .tag-large .tag-price {
+            font-size: 19pt;
+        }
+        .tag-price small {
+            font-size: 0.55em;
+            font-weight: 600;
+            margin: 0 3px;
+        }
+        .tag-bc-wrap {
+            height: 28%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            padding: 0 2mm;
+        }
+        .tag-bc-logo {
+            font-size: 7pt;
+            line-height: 1.1;
+            font-weight: 700;
+            color: #d32f2f;
+            text-align: right;
+            flex-shrink: 0;
+        }
+        .tag-bc-logo span {
+            color: #1a73e8;
+        }
+        .tag-footer {
+            height: 18%;
+        }
+        .bluebar {
+            height: 3mm;
+            background: #1a73e8;
+        }
+        .gap1 {
+            height: 1mm;
+        }
+        .redbar {
+            height: 3mm;
+            background: #e53935;
+            color: #fff;
+            font-size: 6.5pt;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 2mm;
+        }
+
+        /* Queue */
+        .queue-item {
+            border: 1px solid #e2e6ee;
+            border-radius: 10px;
+            padding: 10px;
+            margin-bottom: 6px;
+            background: #fcfdff;
+            font-size: 13px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+        .queue-info {
+            flex: 1;
+            min-width: 150px;
+        }
+        .queue-actions {
+            display: flex;
+            gap: 4px;
+            align-items: center;
+        }
+
+        /* Badge */
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+        }
+        .badge-online {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+        .badge-offline {
+            background: #ffebee;
+            color: #c62828;
+        }
+
+        @media (min-width: 900px) {
+            .app-container {
+                flex-direction: row;
+            }
+            .control-panel {
+                width: 400px;
+                min-width: 400px;
+                border-right: 2px solid var(--border);
+                border-bottom: none;
+                height: 100vh;
+                overflow-y: auto;
+                position: sticky;
+                top: 0;
+            }
+            .preview-panel {
+                height: 100vh;
+                overflow-y: auto;
+            }
+        }
+
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+            body {
+                background: #fff;
+            }
+            .preview-panel {
+                padding: 0;
+                background: #fff;
+            }
+            .price-tag {
+                break-inside: avoid;
+            }
+            .toast-container {
+                display: none !important;
+            }
+        }
+
+        .tag-bc-logo {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+}
+.tag-bc-logo img {
+    width: 24px;
+    height: 24px;
+    object-fit: contain;
+}
+    </style>
+</head>
+<body>
+
+    <!-- TOAST -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <div class="app-container">
+
+        <!-- CONTROL PANEL -->
+        <div class="control-panel no-print">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+                <h2 style="font-size:16px;margin:0;">🏷️ Amanda Mart v4.1</h2>
+                <span id="connBadge" class="badge badge-offline">📴 Offline</span>
+            </div>
+
+            <!-- Master -->
+            <div class="section">
+                <div class="section-header" onclick="toggleSection(this)">📂 Master Produk ▾</div>
+                <div class="section-body" id="masterSection">
+                    <div style="font-size:13px;margin-bottom:4px;">Total: <b id="masterCount">0</b> produk</div>
+                    <label style="font-size:12px;font-weight:600;">Upload Excel / CSV</label>
+                    <input type="file" id="masterFile" accept=".xlsx,.xls,.csv">
+                    <div style="margin-top:8px;">
+                        <label style="font-size:12px;font-weight:600;">🌐 Google Sheet URL</label>
+                        <input type="text" id="gsheetUrl" placeholder="https://docs.google.com/spreadsheets/d/...">
+                        <button class="btn-outline btn-sm btn-block" id="btnLoadGsheet" style="margin-top:4px;">🔄 Ambil dari Google Sheet</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Input -->
+            <div class="section">
+                <div class="section-header" onclick="toggleSection(this)">📥 Input Produk ▾</div>
+                <div class="section-body" id="inputSection">
+                    <input id="scanInput" type="text" placeholder="Scan / ketik PLU atau Barcode lalu Enter">
+                    <div class="info-text">💡 Bisa input <b>PLU</b> (4031031) atau <b>Barcode</b> (116109032)</div>
+                    <div id="scanMsg"></div>
+                    <button class="scanner-btn btn-block" id="btnScan" style="margin-top:6px;">📷 Scan Barcode (Kamera)</button>
+                    <div id="reader" style="display:none;"></div>
+                    <button class="btn-outline btn-sm btn-block" id="btnStopScan" style="display:none;margin-top:4px;">⏹️ Stop Kamera</button>
+
+                    <div style="margin-top:10px;"><b style="font-size:13px;">📤 Batch Upload</b></div>
+                    <input type="file" id="batchFile" accept=".xlsx,.xls,.csv">
+                </div>
+            </div>
+
+            <!-- Queue -->
+            <div class="section">
+                <div class="section-header" onclick="toggleSection(this)">📋 Antrian Cetak ▾</div>
+                <div class="section-body" id="queueSection">
+                    <div id="queueList" style="max-height:220px;overflow:auto;"></div>
+                    <div style="margin-top:8px;font-weight:700;">Total tag: <b id="totalTags">0</b></div>
+                    <button id="btnClear" class="btn-danger btn-sm btn-block" style="margin-top:4px;">🗑️ Kosongkan</button>
+                </div>
+            </div>
+
+            <!-- Settings -->
+            <div class="section">
+                <div class="section-header" onclick="toggleSection(this)">⚙️ Pengaturan ▾</div>
+                <div class="section-body" id="settingsSection">
+                    <b style="font-size:13px;">Ukuran Tag</b>
+                    <div style="display:flex;gap:8px;margin:4px 0;">
+                        <label style="flex:1;"><input type="radio" name="size" value="small" checked> Kecil</label>
+                        <label style="flex:1;"><input type="radio" name="size" value="large"> Besar</label>
+                    </div>
+                    <label style="font-size:13px;margin-top:8px;display:flex;align-items:center;gap:6px;">
+                        <input type="checkbox" id="showExpire"> Tampilkan Expire
+                    </label>
+                    <input type="text" id="expireText" value="R_H-3 MONTH" placeholder="Keterangan">
+                    <input type="date" id="expireDate">
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <button class="btn-primary btn-block" id="btnPrint">🖨️ Cetak / Print</button>
+            <button class="btn-outline btn-block" id="btnOpen">↗️ Buka Halaman Cetak</button>
+            <button class="btn-outline btn-block" id="btnExportHistory" style="margin-top:4px;">📥 Export History (Excel)</button>
+            <p style="font-size:10px;color:#888;text-align:center;margin-top:8px;">PLU & Barcode support • CODE128</p>
+        </div>
+
+        <!-- PREVIEW -->
+        <div class="preview-panel">
+            <h3 style="margin-bottom:10px;font-size:15px;">🖼️ Preview Tag Harga</h3>
+            <div id="tagGrid" class="tag-grid"></div>
+            <div id="emptyMsg" style="color:#888;text-align:center;padding:40px;">Belum ada tag. Scan PLU atau Barcode.</div>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            // ========== STATE ==========
+            let masterMap = new Map(); // key: PLU → product data
+            let barcodeToPlu = new Map(); // key: Barcode asli → PLU (reverse lookup)
+            let queue = [];
+            let tagSize = 'small';
+            let historyLog = [];
+            let html5QrScanner = null;
+            let isScanning = false;
+
+            // ========== TOAST ==========
+            function showToast(message, type = 'error') {
+                const container = document.getElementById('toastContainer');
+                const toast = document.createElement('div');
+                toast.className = `toast ${type}`;
+                const icons = { error: '❌', success: '✅', warning: '⚠️' };
+                toast.innerHTML = `<span>${icons[type] || '📢'}</span> ${message}`;
+                container.appendChild(toast);
+                setTimeout(() => {
+                    toast.style.opacity = '0';
+                    toast.style.transition = 'opacity 0.3s';
+                    setTimeout(() => toast.remove(), 300);
+                }, 3500);
+            }
+
+            // ========== HISTORY ==========
+            function addHistory(action, detail, status = 'success') {
+                historyLog.push({
+                    timestamp: new Date().toISOString(),
+                    action,
+                    detail,
+                    status
+                });
+                if (historyLog.length > 500) historyLog.shift();
+            }
+
+            function exportHistoryToExcel() {
+                if (!historyLog.length) {
+                    showToast('History kosong.', 'warning');
+                    return;
+                }
+                try {
+                    const ws = XLSX.utils.json_to_sheet(historyLog);
+                    const wb = XLSX.utils.book_new();
+                    XLSX.utils.book_append_sheet(wb, ws, 'History');
+                    XLSX.writeFile(wb, `history_price_tag_${new Date().toISOString().slice(0,10)}.xlsx`);
+                    showToast('History diexport!', 'success');
+                    addHistory('EXPORT_HISTORY', `Export ${historyLog.length} entri`, 'success');
+                } catch (e) {
+                    showToast('Gagal export: ' + e.message, 'error');
+                }
+            }
+
+            // ========== UTILS ==========
+            function formatRp(n) {
+                const num = Number(n);
+                if (isNaN(num) || num === 0) return 'No Data';
+                return num.toLocaleString('id-ID');
+            }
+
+            function esc(s) {
+                return String(s).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;',
+                    "'": '&#39;' } [m]));
+            }
+
+            function parsePrice(val) {
+                if (val === undefined || val === null || val === '') return 0;
+                if (String(val).toLowerCase() === 'no data') return 0;
+                const num = parseInt(String(val).replace(/[^\d]/g, ''));
+                return isNaN(num) ? 0 : num;
+            }
+
+            // ========== LOOKUP: PLU atau Barcode → product ==========
+            function resolveProduct(input) {
+                const code = String(input).trim();
+                if (!code) return null;
+                // Coba lookup langsung sebagai PLU (cara lama)
+                if (masterMap.has(code)) return masterMap.get(code);
+                // Coba lookup sebagai barcode asli → dapatkan PLU
+                if (barcodeToPlu.has(code)) {
+                    const plu = barcodeToPlu.get(code);
+                    return masterMap.get(plu) || null;
+                }
+                return null;
+            }
+
+            // ========== MASTER LOADING ==========
+            function loadMasterFromArray(rows) {
+                let c = 0;
+                masterMap.clear();
+                barcodeToPlu.clear();
+
+                rows.forEach(r => {
+                    const keys = Object.keys(r);
+                    const get = nms => {
+                        const k = keys.find(k => nms.includes(String(k).trim().toLowerCase()));
+                        return k ? r[k] : '';
+                    };
+
+                    const plu = String(get(['plu', 'kode'])).trim();
+                    const barcodeAsli = String(get(['barcode', 'ean'])).trim();
+                    const desc = get(['descp', 'desc', 'nama', 'nama produk', 's_descp']);
+                    const unit = get(['sat1', 'satuan', 'unit']) || 'PCS';
+                    const priceRaw = get(['price1', 'harga', 'm_price', 'hj-mm', 'hjmm']);
+                    const price = parsePrice(priceRaw);
+                    const returHari = get(['retur_hari', 'expire_info']) || '';
+
+                    // Key utama tetap PLU (tidak mengubah cara kerja lama)
+                    if (plu && desc) {
+                        const product = {
+                            barcode: plu, // ini adalah PLU, tetap disimpan sebagai 'barcode' untuk kompatibilitas
+                            plu: plu,
+                            barcodeAsli: barcodeAsli, // barcode asli dari kolom barcode
+                            desc: String(desc),
+                            unit: String(unit).toUpperCase() || 'PCS',
+                            price: price,
+                            returHari: String(returHari)
+                        };
+                        masterMap.set(plu, product);
+                        c++;
+
+                        // Buat reverse mapping: barcode asli → PLU
+                        if (barcodeAsli && barcodeAsli !== plu) {
+                            barcodeToPlu.set(barcodeAsli, plu);
+                        }
+                    }
+                });
+
+                document.getElementById('masterCount').textContent = c;
+                showToast(`Master: ${c} produk (${barcodeToPlu.size} barcode terpetakan)`, 'success');
+                addHistory('LOAD_MASTER',
+                    `Loaded ${c} products, ${barcodeToPlu.size} barcode mappings`, 'success');
+            }
+
+            // Upload file master
+            document.getElementById('masterFile').addEventListener('change', async function(e) {
+                const f = e.target.files[0];
+                if (!f) return;
+                try {
+                    const data = await f.arrayBuffer();
+                    const wb = XLSX.read(data, { type: 'array' });
+                    const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: '' });
+                    loadMasterFromArray(rows);
+                } catch (err) {
+                    showToast('Gagal baca file: ' + err.message, 'error');
+                    addHistory('LOAD_MASTER', 'Error: ' + err.message, 'error');
+                }
+            });
+
+            // Google Sheet
+            document.getElementById('btnLoadGsheet').addEventListener('click', async function() {
+                const url = document.getElementById('gsheetUrl').value.trim();
+                if (!url) { showToast('Masukkan URL Google Sheet.', 'warning'); return; }
+                try {
+                    const match = url.match(/\/d\/([a-zA-Z0-9-_]+)/);
+                    if (!match) { showToast('URL tidak valid.', 'error'); return; }
+                    const sheetId = match[1];
+                    const csvUrl =
+                        `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv`;
+                    showToast('Mengambil data...', 'warning');
+                    const response = await fetch(csvUrl);
+                    if (!response.ok) throw new Error('Gagal fetch. Pastikan sheet di-publish.');
+                    const csvText = await response.text();
+                    const wb = XLSX.read(csvText, { type: 'string' });
+                    const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: '' });
+                    loadMasterFromArray(rows);
+                    document.getElementById('connBadge').innerHTML = '🟢 Online';
+                    document.getElementById('connBadge').className = 'badge badge-online';
+                    addHistory('LOAD_GSHEET', 'Loaded from Google Sheet', 'success');
+                } catch (err) {
+                    showToast('Gagal: ' + err.message, 'error');
+                    addHistory('LOAD_GSHEET', 'Error: ' + err.message, 'error');
+                }
+            });
+
+            // ========== QUEUE (TIDAK DIUBAH) ==========
+            function addBarcode(code, qty = 1) {
+                const p = resolveProduct(code);
+                if (!p) return false;
+                const lookupKey = p.plu; // gunakan PLU sebagai key queue (konsisten)
+                let f = queue.find(q => q.plu === lookupKey);
+                if (f) {
+                    f.qty += qty;
+                } else {
+                    queue.push({ ...p, qty });
+                }
+                addHistory('ADD_QUEUE', `${p.desc} (PLU:${p.plu}, Barcode:${p.barcodeAsli || '-'}) x${qty}`,
+                    'success');
+                render();
+                return true;
+            }
+
+            function renderQueue() {
+                const el = document.getElementById('queueList');
+                if (!queue.length) {
+                    el.innerHTML = '<i style="color:#888;">Belum ada item</i>';
+                } else {
+                    el.innerHTML = queue.map((q, i) => `
+                <div class="queue-item">
+                  <div class="queue-info">
+                    <b>${esc(q.desc)}</b><br>
+                    <small>Rp. ${formatRp(q.price)} · PLU: ${esc(q.plu)}</small><br>
+                    <small>Barcode: ${esc(q.barcodeAsli || '-')} | Exp: ${esc(q.returHari || '-')}</small>
+                  </div>
+                  <div class="queue-actions">
+                    <button class="btn-outline btn-sm" onclick="window._chg(${i},-1)">−</button>
+                    <span style="font-weight:700;min-width:20px;text-align:center;">${q.qty}</span>
+                    <button class="btn-outline btn-sm" onclick="window._chg(${i},1)">+</button>
+                    <button class="btn-danger btn-sm" onclick="window._del(${i})">🗑️</button>
+                  </div>
+                </div>
+              `).join('');
+                }
+                document.getElementById('totalTags').textContent = queue.reduce((s, q) => s + q.qty, 0);
+            }
+
+            window._chg = function(i, d) {
+                queue[i].qty += d;
+                if (queue[i].qty < 1) queue.splice(i, 1);
+                render();
+            };
+            window._del = function(i) {
+                const item = queue[i];
+                queue.splice(i, 1);
+                addHistory('REMOVE_QUEUE', `${item.desc} removed`, 'success');
+                render();
+            };
+
+            function renderTags() {
+                const grid = document.getElementById('tagGrid');
+                const showExpire = document.getElementById('showExpire').checked;
+                const expireText = document.getElementById('expireText').value;
+                const expireDate = document.getElementById('expireDate').value;
+                let dateFmt = expireDate ? new Date(expireDate + 'T00:00:00').toLocaleDateString('id-ID') : '';
+
+                grid.innerHTML = '';
+    queue.forEach(q => {
+    for (let n = 0; n < q.qty; n++) {
+        const div = document.createElement('div');
+        div.className = 'price-tag ' + (tagSize === 'large' ? 'tag-large' : 'tag-small');
+        const expireInfo = q.returHari && q.returHari !== 'No Data' ? q.returHari : '';
+        const printBarcode = q.plu;
+        div.innerHTML = `
+          <div class="tag-name">${esc(q.desc)}</div>
+          <div class="tag-price"><small>Rp.</small>${formatRp(q.price)}<small>/${esc(q.unit)}</small></div>
+          <div class="tag-bc-wrap">
+            <div class="tag-bc-logo">
+              <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAMAAADXqc3KAAABtlBMVEUAAADT/v7+/v79/v7+/v76/v79/v7+/v7+/v79/v78/v72//70/vr0/fzo/v77/v79/v7+/v79/v7+/v79/v79/v78///t/Pzy//z5/v3+/v78/f3+/v78/v76/v7+/v76/v7+/v7+/v75/v71/vvy/v70/v7x/v7f///fAC8AfaX////cAB0Acp3+l6kAd6EAdJ7fACiR2OQAdaDfACwBeqIAcJz+/f7cAivfACP6/f3F6fGO1+P6qboAfKUAZpXbCDLcAy/gACzbACLYAAz97/TU7/S/4Oml1+aM0+E0k7Mmj7Aoja4Sg6f8laICeKDcEz3ZACbt///1+/vs9ffa8PTA5vD+2eKn1OKazt781dz/x9T7ydL9xM96u847mLYukbHzm60diq0PgKXtfZXhPF3fNlbeK1DdKEveACDh+Pz89Pb48/Xl8vPS5+z/5Oz15uvM5ev24ee72+W22OO22eKN0+H22eD01t2ZydeUx9Z+vtL4vsz3vsxusMdjqsJKobxIoLtLn7vtqrnxprjtprb9nK3rm63rkqX7lKIKe6LqiZ8Aa5fkb4nmbonjW3ndF0HXABqSOsLPAAAAKXRSTlMAB/no1XbTtZqVZ0A+OBL18Nzar4RrMSwm+evRxsS5o6NvWVhSUS8TCBHx+PwAAAG2SURBVCjPVZJ3V+JAFMVHpNq723sjb0IyG5IQkC6CgAL23uv2tffeu9/YR1TU3x/3nHvvm5zkTcg9NdVWi8X6vpg8pcAILZ5YrKMFyk3fHuJnr6BrkBN5UZTj3WDMnSp60R5XJB+H+AQl6TF8Ijq1pdETEUNZkgRshVSXWkSQPGODLKCXRra3EpKEA2I0vwQLEyTRick5QKJxEWea3DY8kN+tcJw06G7bGBrabIcdbJQBw1dSCAmBk5va/owqgsCn5t0jMlr4QKp+pHwcPwAJkUOE0dYVHh/seUssMT/Pn/2fRc3iX/6tKLx/tZy8bGj8XlfXiqqz4FHRNnY8J+aeY4fD8bOnGRVp7lMPUPtLyRtvPaXXM0eoWeov3BnUsQpS9dcVCgUi+2G7Dj1Vr5g93PsOX3dKm76EX2mWzZ2Bf3BOWRo+4gcOUza5tBt06oXrcHGc0TFDSXYlkxoLujC/bYKMpVWbvsROF3OGMLyrWGYdl4jUlq0Fpu05tMyeWnh3UWWdE1QL6eManeozfM5d7WvwjgfClIaDE8NgLn78M5gh0uv19kegwpRHnvClwFZZaa2uufc36u9oQj/iMm8AAAAASUVORK5CYII=" 
+                   alt="Logo" width="24" height="24" style="vertical-align:middle;">
+            </div>
+            <svg class="bc" data-code="${esc(printBarcode)}"></svg>
+          </div>
+          <div class="tag-footer">
+            <div class="bluebar"></div>
+            <div class="gap1"></div>
+            <div class="redbar">
+              <span>${showExpire ? esc(expireText) : ''} ${expireInfo ? '| ' + esc(expireInfo) : ''}</span>
+              <span>${dateFmt}</span>
+            </div>
+          </div>`;
+        grid.appendChild(div);
+    }
+});
+                document.getElementById('emptyMsg').style.display = grid.children.length ? 'none' : 'block';
+                setTimeout(() => {
+                    grid.querySelectorAll('.bc').forEach(svg => {
+                        try {
+                            JsBarcode(svg, svg.dataset.code, {
+                                format: 'CODE128',
+                                displayValue: true,
+                                fontSize: 10,
+                                height: 24,
+                                margin: 0,
+                                textMargin: 2,
+                                width: 1.4
+                            });
+                        } catch (e) {}
+                    });
+                }, 30);
+            }
+
+            function render() { renderQueue();
+                renderTags(); }
+
+            // ========== SCANNER ==========
+            async function startScanner() {
+                if (isScanning) return;
+                document.getElementById('reader').style.display = 'block';
+                document.getElementById('btnStopScan').style.display = 'block';
+                document.getElementById('btnScan').style.display = 'none';
+                try {
+                    html5QrScanner = new Html5Qrcode("reader");
+                    isScanning = true;
+                    await html5QrScanner.start({ facingMode: "environment" }, {
+                        fps: 10,
+                        qrbox: { width: 250, height: 100 }
+                    }, (decodedText) => {
+                        // Hasil scan
+                        document.getElementById('scanInput').value = decodedText;
+                        if (addBarcode(decodedText)) {
+                            document.getElementById('scanMsg').textContent =
+                                '✅ Ditambahkan: ' + decodedText;
+                            document.getElementById('scanMsg').style.color = '#2e7d32';
+                            showToast('Terdeteksi: ' + decodedText, 'success');
+                        } else {
+                            document.getElementById('scanMsg').textContent =
+                                '❌ Tidak ditemukan: ' + decodedText;
+                            document.getElementById('scanMsg').style.color = '#c33';
+                            showToast('PLU/Barcode tidak ada di master: ' + decodedText, 'error');
+                        }
+                        if (navigator.vibrate) navigator.vibrate(100);
+                        setTimeout(() => document.getElementById('scanMsg').textContent = '',
+                            2000);
+                    }, () => {});
+                    addHistory('START_SCANNER', 'Camera started', 'success');
+                } catch (err) {
+                    showToast('Gagal akses kamera: ' + err.message, 'error');
+                    stopScanner();
+                }
+            }
+
+            async function stopScanner() {
+                if (html5QrScanner && isScanning) {
+                    try { await html5QrScanner.stop();
+                        html5QrScanner.clear(); } catch (e) {}
+                    html5QrScanner = null;
+                    isScanning = false;
+                }
+                document.getElementById('reader').style.display = 'none';
+                document.getElementById('btnStopScan').style.display = 'none';
+                document.getElementById('btnScan').style.display = 'block';
+            }
+
+            document.getElementById('btnScan').addEventListener('click', startScanner);
+            document.getElementById('btnStopScan').addEventListener('click', stopScanner);
+
+            // ========== MANUAL INPUT (PLU ATAU BARCODE) ==========
+            document.getElementById('scanInput').addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const v = e.target.value.trim();
+                    if (!v) return;
+                    if (addBarcode(v)) {
+                        e.target.value = '';
+                        document.getElementById('scanMsg').textContent = '✅ Ditambahkan';
+                        document.getElementById('scanMsg').style.color = '#2e7d32';
+                    } else {
+                        document.getElementById('scanMsg').textContent = '❌ Tidak ditemukan';
+                        document.getElementById('scanMsg').style.color = '#c33';
+                        showToast('PLU/Barcode tidak ditemukan: ' + v, 'error');
+                    }
+                    setTimeout(() => document.getElementById('scanMsg').textContent = '', 1500);
+                }
+            });
+
+            // ========== SETTINGS ==========
+            document.querySelectorAll('input[name=size]').forEach(r => r.addEventListener('change',
+            function(e) { tagSize = e.target.value;
+                renderTags(); }));
+            ['showExpire', 'expireText', 'expireDate'].forEach(id => document.getElementById(id).addEventListener(
+                'input', renderTags));
+            document.getElementById('expireDate').valueAsDate = new Date();
+
+            // ========== BUTTONS ==========
+            document.getElementById('btnClear').onclick = function() {
+                if (!queue.length) { showToast('Antrian kosong.', 'warning'); return; }
+                queue = [];
+                addHistory('CLEAR_QUEUE', 'All cleared', 'success');
+                render();
+                showToast('Antrian dikosongkan.', 'success');
+            };
+            document.getElementById('btnPrint').onclick = function() {
+                if (!queue.length) { showToast('Antrian kosong.', 'error'); return; }
+                addHistory('PRINT', `Print ${queue.reduce((s,q)=>s+q.qty,0)} tags`, 'success');
+                window.print();
+            };
+            document.getElementById('btnOpen').onclick = function() {
+                if (!queue.length) { showToast('Antrian kosong.', 'error'); return; }
+                const tags = document.getElementById('tagGrid').innerHTML;
+                const css = document.querySelector('style').innerText;
+                const w = window.open('', '_blank');
+                w.document.write('<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Cetak - Amanda Mart</title><style>' +
+                    css +
+                    'body{padding:8mm} .tag-grid{display:grid;grid-template-columns:repeat(3,6.3cm);gap:4mm 3mm;justify-content:center}</style></head><body><div class="tag-grid">' +
+                    tags +
+                    '</div><script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"><\/script><script>setTimeout(()=>{document.querySelectorAll(".bc").forEach(s=>{try{JsBarcode(s,s.dataset.code,{format:"CODE128",displayValue:true,fontSize:10,height:24,margin:0,textMargin:2,width:1.4})}catch(e){}});setTimeout(()=>window.print(),350)},150)<\/script></body></html>'
+                    );
+                w.document.close();
+                addHistory('OPEN_PRINT', 'Opened print page', 'success');
+            };
+            document.getElementById('btnExportHistory').onclick = exportHistoryToExcel;
+
+            // ========== BATCH ==========
+            document.getElementById('batchFile').addEventListener('change', async function(e) {
+                const f = e.target.files[0];
+                if (!f) return;
+                try {
+                    const data = await f.arrayBuffer();
+                    const wb = XLSX.read(data, { type: 'array' });
+                    const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: '' });
+                    let added = 0;
+                    rows.forEach(r => {
+                        const keys = Object.keys(r);
+                        const get = nms => {
+                            const k = keys.find(k => nms.includes(String(k).trim()
+                                .toLowerCase()));
+                            return k ? r[k] : '';
+                        };
+                        const code = String(get(['plu', 'barcode', 'kode', 'ean'])).trim();
+                        const qty = parseInt(get(['qty', 'quantity', 'jumlah'])) || 1;
+                        if (addBarcode(code, qty)) added++;
+                    });
+                    showToast(`Batch: ${added} item ditambahkan.`, 'success');
+                    addHistory('BATCH', `Added ${added} items`, 'success');
+                } catch (err) {
+                    showToast('Gagal batch: ' + err.message, 'error');
+                }
+                e.target.value = '';
+            });
+
+            // ========== COLLAPSIBLE ==========
+            window.toggleSection = function(header) {
+                const body = header.nextElementSibling;
+                if (body) {
+                    body.classList.toggle('collapsed');
+                    const arrow = header.textContent.includes('▾') ? '▾' : '▴';
+                    header.textContent = header.textContent.replace(/[▾▴]/, arrow === '▾' ? '▴' : '▾');
+                }
+            };
+
+            // ========== INIT ==========
+            render();
+            addHistory('APP_START', 'v4.1 - PLU & Barcode dual lookup', 'success');
+            console.log('✅ Amanda Mart Price Tag v4.1 ready');
+            console.log('🔍 Dual lookup: PLU + Barcode asli');
+            console.log('ℹ️ masterMap (PLU key), barcodeToPlu (barcode→PLU), queue, historyLog');
+        })();
+    </script>
+</body>
+</html>
