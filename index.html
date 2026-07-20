@@ -675,32 +675,39 @@
                 }
             });
 
-            // Google Sheet
-            document.getElementById('btnLoadGsheet').addEventListener('click', async function() {
-                const url = document.getElementById('gsheetUrl').value.trim();
-                if (!url) { showToast('Masukkan URL Google Sheet.', 'warning'); return; }
-                try {
-                    const match = url.match(/\/d\/([a-zA-Z0-9-_]+)/);
-                    if (!match) { showToast('URL tidak valid.', 'error'); return; }
-                    const sheetId = match[1];
-                    const csvUrl =
-                        `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv`;
-                    showToast('Mengambil data...', 'warning');
-                    const response = await fetch(csvUrl);
-                    if (!response.ok) throw new Error('Gagal fetch. Pastikan sheet di-publish.');
-                    const csvText = await response.text();
-                    const wb = XLSX.read(csvText, { type: 'string' });
-                    const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: '' });
-                    loadMasterFromArray(rows);
-                    document.getElementById('connBadge').innerHTML = '🟢 Online';
-                    document.getElementById('connBadge').className = 'badge badge-online';
-                    addHistory('LOAD_GSHEET', 'Loaded from Google Sheet', 'success');
-                } catch (err) {
-                    showToast('Gagal: ' + err.message, 'error');
-                    addHistory('LOAD_GSHEET', 'Error: ' + err.message, 'error');
-                }
-            });
+            // Google Sheet (KODE BARU YANG SUDAH DIPERBAIKI)
+document.getElementById('btnLoadGsheet').addEventListener('click', async function() {
+    let url = document.getElementById('gsheetUrl').value.trim();
+    if (!url) { showToast('Masukkan URL Google Sheet.', 'warning'); return; }
 
+    try {
+        showToast('Mengambil data...', 'warning');
+
+        // Jika user memasukkan URL Google Sheet biasa (bukan link publish), otomatis ubah ke export CSV
+        if (url.includes('/edit') || url.includes('/view')) {
+            const match = url.match(/\/d\/([a-zA-Z0-9-_]+)/);
+            if (match) {
+                url = `https://docs.google.com/spreadsheets/d/${match[1]}/export?format=csv`;
+            }
+        }
+
+        const response = await fetch(url);
+        if (!response.ok) throw new Error('Gagal fetch. Pastikan link CSV benar atau sheet sudah di-publish.');
+        
+        const csvText = await response.text();
+        const wb = XLSX.read(csvText, { type: 'string' });
+        const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: '' });
+        
+        loadMasterFromArray(rows);
+        
+        document.getElementById('connBadge').innerHTML = '🟢 Online';
+        document.getElementById('connBadge').className = 'badge badge-online';
+        addHistory('LOAD_GSHEET', 'Loaded from Google Sheet', 'success');
+    } catch (err) {
+        showToast('Gagal: ' + err.message, 'error');
+        addHistory('LOAD_GSHEET', 'Error: ' + err.message, 'error');
+    }
+});
             // ========== QUEUE (TIDAK DIUBAH) ==========
             function addBarcode(code, qty = 1) {
                 const p = resolveProduct(code);
