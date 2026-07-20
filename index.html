@@ -452,19 +452,20 @@
             </div>
 
             <!-- Master -->
-            <div class="section">
-                <div class="section-header" onclick="toggleSection(this)">📂 Master Produk ▾</div>
-                <div class="section-body" id="masterSection">
-                    <div style="font-size:13px;margin-bottom:4px;">Total: <b id="masterCount">0</b> produk</div>
-                    <label style="font-size:12px;font-weight:600;">Upload Excel / CSV</label>
-                    <input type="file" id="masterFile" accept=".xlsx,.xls,.csv">
-                    <div style="margin-top:8px;">
-                        <label style="font-size:12px;font-weight:600;">🌐 Google Sheet URL</label>
-                        <input type="text" id="gsheetUrl" placeholder="https://docs.google.com/spreadsheets/d/e/2PACX-1vTTihhEvsgViur0UrLWRD0fiL16EJSwLvfC8TxX9T6KOYcCUN28UF695rVPgomjqMckahjcv3R1Q1_7/pub?output=csv">
-                        <button class="btn-outline btn-sm btn-block" id="btnLoadGsheet" style="margin-top:4px;">🔄 Ambil dari Google Sheet</button>
-                    </div>
-                </div>
-            </div>
+<div class="section">
+    <div class="section-header" onclick="toggleSection(this)">📂 Master Produk ▾</div>
+    <div class="section-body" id="masterSection">
+        <div style="font-size:13px;margin-bottom:4px;">Total: <b id="masterCount">0</b> produk</div>
+        <label style="font-size:12px;font-weight:600;">Upload Excel / CSV</label>
+        <input type="file" id="masterFile" accept=".xlsx,.xls,.csv">
+        <div style="margin-top:8px;">
+            <label style="font-size:12px;font-weight:600;">🌐 Google Sheet URL</label>
+            <!-- GANTI BARIS INPUT DI BAWAH INI -->
+            <input type="text" id="gsheetUrl" value="https://docs.google.com/spreadsheets/d/e/2PACX-1vTTihhEvsgViur0UrLWRD0fiL16EJSwLvfC8TxX9T6KOYcCUN28UF695rVPgomjqMckahjcv3R1Q1_7/pub?output=csv" placeholder="Tempel link CSV Google Sheet di sini...">
+            <button class="btn-outline btn-sm btn-block" id="btnLoadGsheet" style="margin-top:4px;">🔄 Ambil dari Google Sheet</button>
+        </div>
+    </div>
+</div>
 
             <!-- Input -->
             <div class="section">
